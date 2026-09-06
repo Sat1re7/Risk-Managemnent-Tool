@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Position size calculator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0E1116;
+    --surface: #151A21;
+    --surface-raised: #1B222B;
+    --border: #2A323D;
+    --border-strong: #3A4552;
+    --text: #E8EAED;
+    --text-muted: #8A93A0;
+    --text-faint: #5C6673;
+    --amber: #D6A24C;
+    --amber-dim: #4A3B22;
+    --teal: #4FA8A0;
+    --danger: #C25450;
+    --radius: 6px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+    min-height: 100vh;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 28px 24px;
+  }
+
+  h1 {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: 0.01em;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0 0 22px;
+    line-height: 1.5;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+
+  .tab {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 2px 10px;
+    margin-right: 18px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transform: translateY(1px);
+  }
+
+  .tab:hover { color: var(--text); }
+
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: var(--teal);
+  }
+
+  .tab:focus-visible,
+  input:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+  }
+
+  .field-group { margin-bottom: 16px; }
+  .field-group:last-of-type { margin-bottom: 0; }
+
+  fieldset {
+    border: none;
+    padding: 0;
+    margin: 0 0 16px;
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .input-wrap .prefix,
+  .input-wrap .suffix {
+    position: absolute;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--text-faint);
+    pointer-events: none;
+  }
+
+  .input-wrap .prefix { left: 12px; }
+  .input-wrap .suffix { right: 12px; }
+
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    padding: 10px 12px;
+    padding-left: 24px;
+  }
+
+  input.has-suffix { padding-right: 28px; }
+
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type=number] { -moz-appearance: textfield; }
+
+  input:hover { border-color: var(--text-faint); }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 22px 0 18px;
+  }
+
+  .result-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .result-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 34px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--amber);
+    line-height: 1.15;
+    word-break: break-all;
+  }
+
+  .result-value.is-empty {
+    color: var(--text-faint);
+  }
+
+  .warning {
+    font-size: 13px;
+    color: var(--danger);
+    margin-top: 10px;
+    line-height: 1.5;
+    min-height: 0;
+  }
+
+  .save-status {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 18px;
+    text-align: right;
+    height: 14px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .result-value { transition: color 0.15s ease; }
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Position size calculator</h1>
+  <p class="subtitle">Position size = risk ($) &divide; (stop-loss % &divide; 100)</p>
+
+  <div class="tabs" role="tablist" aria-label="Risk amount mode">
+    <button class="tab active" id="tab-fixed" role="tab" aria-selected="true" aria-controls="panel-fixed">Fixed $</button>
+    <button class="tab" id="tab-percent" role="tab" aria-selected="false" aria-controls="panel-percent">Account %</button>
+  </div>
+
+  <div id="panel-fixed">
+    <div class="field-group">
+      <label for="riskFixed">Risk amount</label>
+      <div class="input-wrap">
+        <span class="prefix">$</span>
+        <input type="text" inputmode="decimal" id="riskFixed" placeholder="0.00">
+      </div>
+    </div>
+  </div>
+
+  <div id="panel-percent" style="display:none;">
+    <div class="field-group">
+      <label for="accountBalance">Account balance</label>
+      <div class="input-wrap">
+        <span class="prefix">$</span>
+        <input type="text" inputmode="decimal" id="accountBalance" placeholder="0.00">
+      </div>
+    </div>
+    <div class="field-group">
+      <label for="riskPercent">Risk per trade</label>
+      <div class="input-wrap">
+        <input type="text" inputmode="decimal" id="riskPercent" class="has-suffix" placeholder="0.00">
+        <span class="suffix">%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="field-group">
+    <label for="stopLoss">Stop-loss size</label>
+    <div class="input-wrap">
+      <input type="text" inputmode="decimal" id="stopLoss" class="has-suffix" placeholder="0.00">
+      <span class="suffix">%</span>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="result-label">Position size</div>
+  <div class="result-value is-empty" id="result" aria-live="polite">—</div>
+  <div class="warning" id="warning"></div>
+
+  <div class="save-status" id="saveStatus"></div>
+</div>
+
+<script>
+(function () {
+  const STORAGE_KEY = 'position-calc:inputs';
+
+  const els = {
+    tabFixed: document.getElementById('tab-fixed'),
+    tabPercent: document.getElementById('tab-percent'),
+    panelFixed: document.getElementById('panel-fixed'),
+    panelPercent: document.getElementById('panel-percent'),
+    riskFixed: document.getElementById('riskFixed'),
+    accountBalance: document.getElementById('accountBalance'),
+    riskPercent: document.getElementById('riskPercent'),
+    stopLoss: document.getElementById('stopLoss'),
+    result: document.getElementById('result'),
+    warning: document.getElementById('warning'),
+    saveStatus: document.getElementById('saveStatus'),
+  };
+
+  let mode = 'fixed';
+  let saveTimer = null;
+
+  function parseNum(str) {
+    if (str === undefined || str === null) return NaN;
+    const cleaned = String(str).replace(/,/g, '').trim();
+    if (cleaned === '') return NaN;
+    return Number(cleaned);
+  }
+
+  function formatMoney(n) {
+    return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function setMode(newMode) {
+    mode = newMode;
+    const isFixed = mode === 'fixed';
+    els.tabFixed.classList.toggle('active', isFixed);
+    els.tabPercent.classList.toggle('active', !isFixed);
+    els.tabFixed.setAttribute('aria-selected', String(isFixed));
+    els.tabPercent.setAttribute('aria-selected', String(!isFixed));
+    els.panelFixed.style.display = isFixed ? '' : 'none';
+    els.panelPercent.style.display = isFixed ? 'none' : '';
+    calculate();
+    queueSave();
+  }
+
+  function calculate() {
+    els.warning.textContent = '';
+    const stopLossVal = parseNum(els.stopLoss.value);
+
+    let riskDollar;
+    if (mode === 'fixed') {
+      riskDollar = parseNum(els.riskFixed.value);
+    } else {
+      const balance = parseNum(els.accountBalance.value);
+      const pct = parseNum(els.riskPercent.value);
+      riskDollar = (isNaN(balance) || isNaN(pct)) ? NaN : balance * (pct / 100);
+    }
+
+    if (isNaN(riskDollar) || isNaN(stopLossVal)) {
+      els.result.textContent = '—';
+      els.result.classList.add('is-empty');
+      return;
+    }
+
+    if (stopLossVal <= 0) {
+      els.result.textContent = '—';
+      els.result.classList.add('is-empty');
+      els.warning.textContent = 'Stop-loss size must be greater than zero.';
+      return;
+    }
+
+    if (riskDollar < 0) {
+      els.result.textContent = '—';
+      els.result.classList.add('is-empty');
+      els.warning.textContent = 'Risk amount can\u2019t be negative.';
+      return;
+    }
+
+    const positionSize = riskDollar / (stopLossVal / 100);
+    els.result.textContent = '$' + formatMoney(positionSize);
+    els.result.classList.remove('is-empty');
+  }
+
+  function queueSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(save, 400);
+  }
+
+  async function save() {
+    const data = {
+      mode: mode,
+      riskFixed: els.riskFixed.value,
+      accountBalance: els.accountBalance.value,
+      riskPercent: els.riskPercent.value,
+      stopLoss: els.stopLoss.value,
+    };
+    try {
+      await window.storage.set(STORAGE_KEY, JSON.stringify(data), false);
+      els.saveStatus.textContent = 'Saved';
+      setTimeout(() => { els.saveStatus.textContent = ''; }, 1200);
+    } catch (err) {
+      els.saveStatus.textContent = 'Couldn\u2019t save';
+    }
+  }
+
+  async function load() {
+    try {
+      const res = await window.storage.get(STORAGE_KEY, false);
+      if (res && res.value) {
+        const data = JSON.parse(res.value);
+        els.riskFixed.value = data.riskFixed || '';
+        els.accountBalance.value = data.accountBalance || '';
+        els.riskPercent.value = data.riskPercent || '';
+        els.stopLoss.value = data.stopLoss || '';
+        setMode(data.mode === 'percent' ? 'percent' : 'fixed');
+      }
+    } catch (err) {
+      // no saved data yet — start fresh
+    }
+    calculate();
+  }
+
+  els.tabFixed.addEventListener('click', () => setMode('fixed'));
+  els.tabPercent.addEventListener('click', () => setMode('percent'));
+
+  [els.riskFixed, els.accountBalance, els.riskPercent, els.stopLoss].forEach((el) => {
+    el.addEventListener('input', () => {
+      calculate();
+      queueSave();
+    });
+  });
+
+  load();
+})();
+</script>
+
+</body>
+</html>
